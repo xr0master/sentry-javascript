@@ -1,5 +1,5 @@
 import { eventToSentryRequest } from '@sentry/core';
-import { Event, Response, Status } from '@sentry/types';
+import { Event, SentryResponse, Status } from '@sentry/types';
 import { getGlobalObject, logger, parseRetryAfterHeader, supportsReferrerPolicy, SyncPromise } from '@sentry/utils';
 
 import { BaseTransport } from './base';
@@ -14,7 +14,7 @@ export class FetchTransport extends BaseTransport {
   /**
    * @inheritDoc
    */
-  public sendEvent(event: Event): PromiseLike<Response> {
+  public sendEvent(event: Event): PromiseLike<SentryResponse> {
     if (new Date(Date.now()) < this._disabledUntil) {
       return Promise.reject({
         event,
@@ -44,7 +44,7 @@ export class FetchTransport extends BaseTransport {
     }
 
     return this._buffer.add(
-      new SyncPromise<Response>((resolve, reject) => {
+      new SyncPromise<SentryResponse>((resolve, reject) => {
         global
           .fetch(sentryReq.url, options)
           .then(response => {

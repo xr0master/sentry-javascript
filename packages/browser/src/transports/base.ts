@@ -1,5 +1,5 @@
 import { API } from '@sentry/core';
-import { Event, Response, Transport, TransportOptions } from '@sentry/types';
+import { Event, SentryResponse, Transport, TransportOptions } from '@sentry/types';
 import { PromiseBuffer, SentryError } from '@sentry/utils';
 
 /** Base Transport class implementation */
@@ -13,7 +13,7 @@ export abstract class BaseTransport implements Transport {
   protected readonly _api: API;
 
   /** A simple buffer holding all requests. */
-  protected readonly _buffer: PromiseBuffer<Response> = new PromiseBuffer(30);
+  protected readonly _buffer: PromiseBuffer<SentryResponse> = new PromiseBuffer(30);
 
   public constructor(public options: TransportOptions) {
     this._api = new API(this.options.dsn);
@@ -24,7 +24,7 @@ export abstract class BaseTransport implements Transport {
   /**
    * @inheritDoc
    */
-  public sendEvent(_: Event): PromiseLike<Response> {
+  public sendEvent(_: Event): PromiseLike<SentryResponse> {
     throw new SentryError('Transport Class has to implement `sendEvent` method');
   }
 

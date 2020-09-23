@@ -14,7 +14,7 @@ export { ExtractedNodeRequestData, WorkerLocation } from './misc';
 export { Options } from './options';
 export { Package } from './package';
 export { Request } from './request';
-export { Response } from './response';
+export { SentryResponse } from './response';
 export { Runtime } from './runtime';
 export { CaptureContext, Scope, ScopeContext } from './scope';
 export { SdkInfo } from './sdkinfo';
