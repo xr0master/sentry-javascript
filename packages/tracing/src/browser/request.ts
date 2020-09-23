@@ -1,3 +1,4 @@
+import { Response } from '@sentry/types';
 import { addInstrumentationHandler, isInstanceOf, isMatchingPattern } from '@sentry/utils';
 
 import { Span } from '../span';
