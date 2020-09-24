@@ -6,18 +6,13 @@ import { getGlobalObject, logger } from '@sentry/utils';
 import { Span } from '../span';
 import { Transaction } from '../transaction';
 import { msToSec } from '../utils';
-
-// https://wicg.github.io/event-timing/#sec-performance-event-timing
-interface PerformanceEventTiming extends PerformanceEntry {
-  processingStart: DOMHighResTimeStamp;
-  cancelable?: boolean;
-  target?: Element;
-}
+import { getFID } from './web-vitals/getFID';
+import { getLCP } from './web-vitals/getLCP';
 
 const global = getGlobalObject<Window>();
+
 /** Class tracking metrics  */
 export class MetricsInstrumentation {
-  private _lcp: Record<string, any> = {};
   private _measurements: Measurements = {};
 
   private _performanceCursor: number = 0;
@@ -41,16 +36,6 @@ export class MetricsInstrumentation {
     }
 
     logger.log('[Tracing] Adding & adjusting spans using Performance API');
-
-    // TODO(fixme): depending on the 'op' directly is brittle.
-    if (transaction.op === 'pageload') {
-      // Force any pending records to be dispatched.
-      this._forceLCP();
-      if (this._lcp) {
-        // Set the last observed LCP score.
-        transaction.setData('_sentry_web_vitals', { LCP: this._lcp });
-      }
-    }
 
     const timeOrigin = msToSec(performance.timeOrigin);
     let entryScriptSrc: string | undefined;
@@ -97,13 +82,13 @@ export class MetricsInstrumentation {
             // capture web vitals
 
             if (entry.name === 'first-paint') {
-              logger.log('[Measurements] Adding FP (First Paint)');
+              logger.log('[Measurements] Adding FP');
               this._measurements['fp'] = { value: entry.startTime };
               this._measurements['mark.fp'] = { value: startTimestamp };
             }
 
             if (entry.name === 'first-contentful-paint') {
-              logger.log('[Measurements] Adding FCP (First Contentful Paint)');
+              logger.log('[Measurements] Adding FCP');
               this._measurements['fcp'] = { value: entry.startTime };
               this._measurements['mark.fcp'] = { value: startTimestamp };
             }
@@ -141,135 +126,38 @@ export class MetricsInstrumentation {
     }
   }
 
-  private _forceLCP: () => void = () => {
-    /* No-op, replaced later if LCP API is available. */
-    return;
-  };
-
   /** Starts tracking the Largest Contentful Paint on the current page. */
   private _trackLCP(): void {
-    // Based on reference implementation from https://web.dev/lcp/#measure-lcp-in-javascript.
-    // Use a try/catch instead of feature detecting `largest-contentful-paint`
-    // support, since some browsers throw when using the new `type` option.
-    // https://bugs.webkit.org/show_bug.cgi?id=209216
-    try {
-      // Keep track of whether (and when) the page was first hidden, see:
-      // https://github.com/w3c/page-visibility/issues/29
-      // NOTE: ideally this check would be performed in the document <head>
-      // to avoid cases where the visibility state changes before this code runs.
-      let firstHiddenTime = document.visibilityState === 'hidden' ? 0 : Infinity;
-      document.addEventListener(
-        'visibilitychange',
-        event => {
-          firstHiddenTime = Math.min(firstHiddenTime, event.timeStamp);
-        },
-        { once: true },
-      );
+    getLCP(metric => {
+      const entry = metric.entries.pop();
 
-      const updateLCP = (entry: PerformanceEntry): void => {
-        // Only include an LCP entry if the page wasn't hidden prior to
-        // the entry being dispatched. This typically happens when a page is
-        // loaded in a background tab.
-        if (entry.startTime < firstHiddenTime) {
-          // NOTE: the `startTime` value is a getter that returns the entry's
-          // `renderTime` value, if available, or its `loadTime` value otherwise.
-          // The `renderTime` value may not be available if the element is an image
-          // that's loaded cross-origin without the `Timing-Allow-Origin` header.
-          this._lcp = {
-            // @ts-ignore can't access id on entry
-            ...(entry.id && { elementId: entry.id }),
-            // @ts-ignore can't access id on entry
-            ...(entry.size && { elementSize: entry.size }),
-            value: entry.startTime,
-          };
+      if (!entry) {
+        return;
+      }
 
-          logger.log('[Measurements] Adding LCP (Largest Contentful Paint)');
-
-          this._measurements['lcp'] = { value: entry.startTime };
-
-          const timeOrigin = msToSec(performance.timeOrigin);
-          const startTime = msToSec(entry.startTime as number);
-          this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
-        }
-      };
-
-      // Create a PerformanceObserver that calls `updateLCP` for each entry.
-      const po = new PerformanceObserver(entryList => {
-        entryList.getEntries().forEach(updateLCP);
-      });
-
-      // Observe entries of type `largest-contentful-paint`, including buffered entries,
-      // i.e. entries that occurred before calling `observe()` below.
-      po.observe({
-        buffered: true,
-        type: 'largest-contentful-paint',
-      });
-
-      this._forceLCP = () => {
-        if (po.takeRecords) {
-          po.takeRecords().forEach(updateLCP);
-        }
-      };
-    } catch (e) {
-      // Do nothing if the browser doesn't support this API.
-    }
+      const timeOrigin = msToSec(performance.timeOrigin);
+      const startTime = msToSec(entry.startTime as number);
+      logger.log('[Measurements] Adding LCP');
+      this._measurements['lcp'] = { value: metric.value };
+      this._measurements['mark.lcp'] = { value: timeOrigin + startTime };
+    });
   }
 
   /** Starts tracking the First Input Delay on the current page. */
   private _trackFID(): void {
-    // Based on reference implementation from https://web.dev/fid/#measure-fid-in-javascript.
-    // Use a try/catch instead of feature detecting `first-input`
-    // support, since some browsers throw when using the new `type` option.
-    // https://bugs.webkit.org/show_bug.cgi?id=209216
-    try {
-      // Keep track of whether (and when) the page was first hidden, see:
-      // https://github.com/w3c/page-visibility/issues/29
-      // NOTE: ideally this check would be performed in the document <head>
-      // to avoid cases where the visibility state changes before this code runs.
-      let firstHiddenTime = document.visibilityState === 'hidden' ? 0 : Infinity;
-      document.addEventListener(
-        'visibilitychange',
-        event => {
-          firstHiddenTime = Math.min(firstHiddenTime, event.timeStamp);
-        },
-        { once: true },
-      );
+    getFID(metric => {
+      const entry = metric.entries.pop();
 
-      const updateFID = (entry: PerformanceEventTiming, po: PerformanceObserver): void => {
-        // Only report FID if the page wasn't hidden prior to
-        // the entry being dispatched. This typically happens when a
-        // page is loaded in a background tab.
-        if (entry.startTime < firstHiddenTime) {
-          const fidValue = entry.processingStart - entry.startTime;
+      if (!entry) {
+        return;
+      }
 
-          logger.log('[Measurements] Adding FID (First Input Delay)');
-
-          // Report the FID value to an analytics endpoint.
-          this._measurements['fid'] = { value: fidValue };
-
-          const timeOrigin = msToSec(performance.timeOrigin);
-          const startTime = msToSec(entry.startTime as number);
-          this._measurements['mark.fid'] = { value: timeOrigin + startTime };
-
-          // Disconnect the observer.
-          po.disconnect();
-        }
-      };
-
-      // Create a PerformanceObserver that calls `updateFID` for each entry.
-      const po = new PerformanceObserver(entryList => {
-        entryList.getEntries().forEach(entry => updateFID(entry as PerformanceEventTiming, po));
-      });
-
-      // Observe entries of type `first-input`, including buffered entries,
-      // i.e. entries that occurred before calling `observe()` below.
-      po.observe({
-        buffered: true,
-        type: 'first-input',
-      });
-    } catch (e) {
-      // Do nothing if the browser doesn't support this API.
-    }
+      const timeOrigin = msToSec(performance.timeOrigin);
+      const startTime = msToSec(entry.startTime as number);
+      logger.log('[Measurements] Adding FID');
+      this._measurements['fid'] = { value: metric.value };
+      this._measurements['mark.fid'] = { value: timeOrigin + startTime };
+    });
   }
 }
 
