@@ -3,9 +3,6 @@ import { timestampWithMs } from '@sentry/utils';
 
 import { API } from './api';
 
-// TODO: Introduce Envelope class that can handle 3 different types of request that we already have
-//       The same as it's done in Python.
-
 /** A generic client request. */
 export interface SentryRequest {
   body: string;

@@ -5,7 +5,7 @@ import { User } from './user';
  */
 export interface Session extends SessionContext {
   /** JSDoc */
-  update(context: SessionContext): void;
+  update(context?: SessionContext): void;
 
   /** JSDoc */
   close(status?: SessionStatus): void;

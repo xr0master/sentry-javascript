@@ -18,8 +18,6 @@ export class Session implements SessionInterface {
   public ip_address?: string;
 
   constructor(context?: Omit<SessionContext, 'started' | 'status'>) {
-    console.log('new session constructed'); // eslint-disable-line no-console
-
     if (context) {
       this.update(context);
     }
@@ -27,7 +25,7 @@ export class Session implements SessionInterface {
 
   /** JSDoc */
   // eslint-disable-next-line complexity
-  update(context: SessionContext): void {
+  update(context: SessionContext = {}): void {
     if (context.user) {
       if (context.user.ip_address) {
         this.ip_address = context.user.ip_address;
@@ -79,6 +77,9 @@ export class Session implements SessionInterface {
       this.update({ status });
     } else if (this.status === SessionStatus.Ok) {
       this.update({ status: SessionStatus.Exited });
+    } else {
+      // Calling `update` alone updates session.timestamp to the current time.
+      this.update();
     }
   }
 
