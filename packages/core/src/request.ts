@@ -1,5 +1,5 @@
-import { Session } from '@sentry/hub';
-import { Event } from '@sentry/types';
+import { Event, Session } from '@sentry/types';
+import { timestampWithMs } from '@sentry/utils';
 
 import { API } from './api';
 
