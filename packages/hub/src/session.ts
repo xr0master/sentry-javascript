@@ -5,17 +5,17 @@ import { dropUndefinedKeys, uuid4 } from '@sentry/utils';
  * @inheritdoc
  */
 export class Session implements SessionInterface {
-  public user_agent?: string;
+  public userAgent?: string;
   public errors: number = 0;
   public release?: string;
   public sid: string = uuid4();
   public did?: string;
   public timestamp: number = Date.now();
   public started: number = Date.now();
-  public duration?: number;
+  public duration: number = 0;
   public status: SessionStatus = SessionStatus.Ok;
   public environment?: string;
-  public ip_address?: string;
+  public ipAddress?: string;
 
   constructor(context?: Omit<SessionContext, 'started' | 'status'>) {
     if (context) {
@@ -28,7 +28,7 @@ export class Session implements SessionInterface {
   update(context: SessionContext = {}): void {
     if (context.user) {
       if (context.user.ip_address) {
-        this.ip_address = context.user.ip_address;
+        this.ipAddress = context.user.ip_address;
       }
 
       if (!context.did) {
@@ -39,7 +39,7 @@ export class Session implements SessionInterface {
     this.timestamp = context.timestamp || Date.now();
 
     if (context.sid) {
-      // Good enough uuid validation for now
+      // Good enough uuid validation. — Kamil
       this.sid = context.sid.length === 32 ? context.sid : uuid4();
     }
     if (context.did) {
@@ -48,8 +48,11 @@ export class Session implements SessionInterface {
     if (typeof context.started === 'number') {
       this.started = context.started;
     }
+    // I'm not sure why we even allow to set that, while having `started` and `timestamp` already. — Kamil
     if (typeof context.duration === 'number') {
       this.duration = context.duration;
+    } else {
+      this.duration = this.timestamp - this.started;
     }
     if (context.release) {
       this.release = context.release;
@@ -57,11 +60,11 @@ export class Session implements SessionInterface {
     if (context.environment) {
       this.environment = context.environment;
     }
-    if (context.ip_address) {
-      this.ip_address = context.ip_address;
+    if (context.ipAddress) {
+      this.ipAddress = context.ipAddress;
     }
-    if (context.user_agent) {
-      this.user_agent = context.user_agent;
+    if (context.userAgent) {
+      this.userAgent = context.userAgent;
     }
     if (typeof context.errors === 'number') {
       this.errors = context.errors;
@@ -78,7 +81,7 @@ export class Session implements SessionInterface {
     } else if (this.status === SessionStatus.Ok) {
       this.update({ status: SessionStatus.Exited });
     } else {
-      // Calling `update` alone updates session.timestamp to the current time.
+      // Calling `update` alone updates session.timestamp to the current time and session.duration.
       this.update();
     }
   }
@@ -90,9 +93,9 @@ export class Session implements SessionInterface {
     did?: string;
     timestamp: string;
     started: string;
-    duration?: number;
+    duration: number;
     status: SessionStatus;
-    errors?: number;
+    errors: number;
     attrs?: {
       release?: string;
       environment?: string;
@@ -112,8 +115,8 @@ export class Session implements SessionInterface {
       attrs: dropUndefinedKeys({
         release: this.release,
         environment: this.environment,
-        ip_address: this.ip_address,
-        user_agent: this.user_agent,
+        ip_address: this.ipAddress,
+        user_agent: this.userAgent,
       }),
     });
   }

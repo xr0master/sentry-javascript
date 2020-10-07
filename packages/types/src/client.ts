@@ -51,7 +51,7 @@ export interface Client<O extends Options = Options> {
    *
    * @param session Session to be delivered
    */
-  captureSession(session: Session): void;
+  captureSession?(session: Session): void;
 
   /** Returns the current Dsn. */
   getDsn(): Dsn | undefined;

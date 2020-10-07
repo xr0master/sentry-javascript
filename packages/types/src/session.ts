@@ -12,14 +12,14 @@ export interface Session extends SessionContext {
 
   /** JSDoc */
   toJSON(): {
-    init?: boolean;
-    sid?: string;
+    init: boolean;
+    sid: string;
     did?: string;
-    timestamp?: string;
-    started?: string;
-    duration?: number;
-    status?: SessionStatus;
-    errors?: number;
+    timestamp: string;
+    started: string;
+    duration: number;
+    status: SessionStatus;
+    errors: number;
     attrs?: {
       release?: string;
       environment?: string;
@@ -41,8 +41,8 @@ export interface SessionContext {
   status?: SessionStatus;
   release?: string;
   environment?: string;
-  user_agent?: string;
-  ip_address?: string;
+  userAgent?: string;
+  ipAddress?: string;
   errors?: number;
   user?: User | null;
 }

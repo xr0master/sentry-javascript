@@ -155,7 +155,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
    */
   public captureSession(session: Session): void {
     if (!session.release) {
-      logger.warn('Discarded session update because of missing release');
+      logger.warn('Discarded session because of missing release');
     } else {
       this._sendSession(session);
     }
@@ -223,7 +223,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
   protected _updateSessionFromEvent(session: Session, event: Event): void {
     let crashed = false;
     let errored = false;
-    let user_agent;
+    let userAgent;
     const exceptions = event.exception && event.exception.values;
 
     if (exceptions) {
@@ -239,11 +239,11 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     }
 
     const user = event.user;
-    if (!session.user_agent) {
+    if (!session.userAgent) {
       const headers = event.request ? event.request.headers : {};
       for (const key in headers) {
         if (key.toLowerCase() === 'user-agent') {
-          user_agent = headers[key];
+          userAgent = headers[key];
           break;
         }
       }
@@ -252,7 +252,7 @@ export abstract class BaseClient<B extends Backend, O extends Options> implement
     session.update({
       ...(crashed && { status: SessionStatus.Crashed }),
       user,
-      user_agent: user_agent,
+      userAgent,
       errors: session.errors + Number(errored || crashed),
     });
   }

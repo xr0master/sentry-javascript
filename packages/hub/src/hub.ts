@@ -11,6 +11,7 @@ import {
   Hub as HubInterface,
   Integration,
   IntegrationClass,
+  SessionContext,
   Severity,
   Span,
   SpanContext,
@@ -358,22 +359,19 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startSession(): void {
-    const top = this.getStackTop();
-    if (!top.scope) {
-      return;
-    }
-
-    const client = top.client;
-    const { release, environment } = (client && client.getOptions()) || {};
+  public startSession(context?: SessionContext): void {
+    const { scope, client } = this.getStackTop();
+    if (!scope) return;
 
     // End existing session if there's one
     this.endSession();
-    top.scope.setSession(
+    const { release, environment } = (client && client.getOptions()) || {};
+    scope.setSession(
       new Session({
         release,
         environment,
-        user: top.scope.getUser(),
+        user: scope.getUser(),
+        ...context,
       }),
     );
   }
@@ -382,18 +380,17 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public endSession(): void {
-    const top = this.getStackTop();
-    if (!top.scope) {
-      return;
-    }
-    const session = top.scope.getSession();
+    const { scope, client } = this.getStackTop();
+    if (!scope) return;
+
+    const session = scope.getSession();
     if (session) {
       session.close();
-      if (top.client) {
-        top.client.captureSession(session);
+      if (client) {
+        client.captureSession(session);
       }
+      scope.setSession();
     }
-    top.scope.setSession(undefined);
   }
 
   /**

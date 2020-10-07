@@ -4,6 +4,7 @@ import { Event, EventHint } from './event';
 import { Extra, Extras } from './extra';
 import { Integration, IntegrationClass } from './integration';
 import { Scope } from './scope';
+import { Session, SessionContext } from './session';
 import { Severity } from './severity';
 import { Span, SpanContext } from './span';
 import { CustomSamplingContext, Transaction, TransactionContext } from './transaction';
@@ -201,9 +202,22 @@ export interface Hub {
    */
   startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction;
 
-  /** JSDoc */
-  startSession(): void;
+  /**
+   * Starts a new `Session`, sets on the current scope and returns it.
+   *
+   * To finish a `session`, it has to be passed directly to `client.captureSession`, which is done automatically
+   * when using `hub.endSession()` for the session currently stored on the scope.
+   *
+   * When there's already an existing session on the scope, it'll be autmatically ended.
+   *
+   * @param context Optional properties of the new `Session`.
+   *
+   * @returns The session which was just started
+   */
+  startSession(context?: SessionContext): Session;
 
-  /** JSDoc */
+  /**
+   * Ends the session that lives on the current scope and sends it to Sentry
+   */
   endSession(): void;
 }

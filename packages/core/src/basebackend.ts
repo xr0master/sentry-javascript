@@ -1,5 +1,4 @@
-import { Session } from '@sentry/hub';
-import { Event, EventHint, Options, Severity, Transport } from '@sentry/types';
+import { Event, EventHint, Options, Session, Severity, Transport } from '@sentry/types';
 import { logger, SentryError } from '@sentry/utils';
 
 import { NoopTransport } from './transports/noop';
