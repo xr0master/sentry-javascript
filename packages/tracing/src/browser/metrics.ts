@@ -12,8 +12,6 @@ import { NavigatorDeviceMemory, NavigatorNetworkInformation } from './web-vitals
 
 const global = getGlobalObject<Window>();
 
-type FooNavigator = Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory;
-
 type BrowserContext = {
   effectiveConnectionType?: string;
   deviceMemory?: number;
@@ -144,7 +142,7 @@ export class MetricsInstrumentation {
    * Capture the information of the user agent.
    */
   private _trackNavigator(): void {
-    const navigator = window.navigator as null | FooNavigator;
+    const navigator = window.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
 
     // track network connectivity
 
