@@ -1,4 +1,3 @@
-import { eventToSentryRequest, sessionToSentryRequest } from '@sentry/core';
 import { eventToSentryRequest, SentryRequest, sessionToSentryRequest } from '@sentry/core';
 import { Event, Response, Session } from '@sentry/types';
 import { getGlobalObject, supportsReferrerPolicy, SyncPromise } from '@sentry/utils';

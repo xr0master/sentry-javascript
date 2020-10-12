@@ -359,21 +359,22 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public startSession(context?: SessionContext): void {
-    const { scope, client } = this.getStackTop();
-    if (!scope) return;
-
+  public startSession(context?: SessionContext): Session {
     // End existing session if there's one
     this.endSession();
+
+    const { scope, client } = this.getStackTop();
     const { release, environment } = (client && client.getOptions()) || {};
-    scope.setSession(
-      new Session({
-        release,
-        environment,
-        user: scope.getUser(),
-        ...context,
-      }),
-    );
+    const session = new Session({
+      release,
+      environment,
+      ...(scope && { user: scope.getUser() }),
+      ...context,
+    });
+    if (scope) {
+      scope.setSession(session);
+    }
+    return session;
   }
 
   /**
@@ -386,7 +387,7 @@ export class Hub implements HubInterface {
     const session = scope.getSession();
     if (session) {
       session.close();
-      if (client) {
+      if (client && client.captureSession) {
         client.captureSession(session);
       }
       scope.setSession();
